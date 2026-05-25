@@ -1,0 +1,72 @@
+# ──────────────────────────────────────────────────────────────
+# WORKFLOW: staging
+# Trigger: push a la rama staging (viene de un PR desde dev)
+# Qué hace: tests + lint → deploy automático a STAGING
+# ──────────────────────────────────────────────────────────────
+
+name: 🧪 Deploy → STAGING
+
+on:
+  push:
+    branches: [staging]
+
+jobs:
+  test:
+    name: Tests + cobertura
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar tests con cobertura
+        run: pytest tests/ -v --tb=short --cov=src --cov-report=term-missing
+
+      # En staging exigimos más: cobertura mínima del 80%
+      - name: Verificar cobertura mínima
+        run: pytest tests/ --cov=src --cov-fail-under=80 -q
+
+  deploy-staging:
+    name: Deploy STAGING
+    runs-on: ubuntu-latest
+    needs: test
+    environment: staging
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Simular deploy a STAGING
+        run: |
+          echo "──────────────────────────────────────────"
+          echo "🧪 Desplegando a STAGING..."
+          echo "Entorno : STAGING"
+          echo "Rama    : ${{ github.ref_name }}"
+          echo "Commit  : ${{ github.sha }}"
+          echo "Actor   : ${{ github.actor }}"
+          echo "──────────────────────────────────────────"
+
+      # Deploy real (descomenta cuando tengas AWS configurado):
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: eu-north-1
+      # - run: |
+      #     zip -r function.zip src/ requirements.txt
+      #     aws lambda update-function-code \
+      #       --function-name cloudpy-demo-staging \
+      #       --zip-file fileb://function.zip
+
+      - name: Confirmar deploy
+        run: echo "🚀 Desplegado en STAGING correctamente"
