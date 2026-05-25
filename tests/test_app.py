@@ -87,3 +87,26 @@ class TestEndpoints:
         assert resp.status_code == 200
         data = resp.get_json()
         assert len(data["planes"]) == 4
+class TestDescuento:
+
+    def test_descuento_anual(self, client):
+        resp = client.get("/descuento?llamadas=150&meses=12")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["descuento_aplicado"] == "15%"
+        assert data["ahorro"] > 0
+
+    def test_sin_descuento_menos_12_meses(self, client):
+        resp = client.get("/descuento?llamadas=150&meses=6")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["descuento_aplicado"] == "0%"
+        assert data["ahorro"] == 0
+
+    def test_descuento_parametro_invalido(self, client):
+        resp = client.get("/descuento?llamadas=abc&meses=12")
+        assert resp.status_code == 400
+
+    def test_descuento_llamadas_cero(self, client):
+        resp = client.get("/descuento?llamadas=0&meses=12")
+        assert resp.status_code == 400
