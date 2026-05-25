@@ -85,7 +85,39 @@ def planes():
         ],
     })
 
+@app.route("/descuento")
+def descuento():
+    """
+    GET /descuento?llamadas=150&meses=12
+    Calcula el precio con descuento por contratación anual (15%).
+    """
+    try:
+        llamadas = int(request.args.get("llamadas", 0))
+        meses = int(request.args.get("meses", 1))
+    except (ValueError, TypeError):
+        return jsonify({"error": "Los parámetros deben ser números enteros"}), 400
 
+    if llamadas <= 0 or meses <= 0:
+        return jsonify({"error": "Los parámetros deben ser mayores que 0"}), 400
+
+    plan = calcular_plan(llamadas)
+    precio_mensual = plan["precio_iva"]
+    precio_total = precio_mensual * meses
+
+    descuento_pct = 0.15 if meses >= 12 else 0
+    ahorro = round(precio_total * descuento_pct, 2)
+    precio_final = round(precio_total - ahorro, 2)
+
+    return jsonify({
+        "plan": plan["plan"],
+        "meses": meses,
+        "precio_mensual": precio_mensual,
+        "precio_sin_descuento": precio_total,
+        "descuento_aplicado": f"{int(descuento_pct * 100)}%",
+        "ahorro": ahorro,
+        "precio_final": precio_final,
+        "entorno": ENVIRONMENT,
+    })
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     debug = ENVIRONMENT == "DEV"
